@@ -133,15 +133,51 @@ def extract_signals_fast(text):
 
 def detect_vendors_fast(text):
     vendors = {
+        # WiFi / RAN Equipment
         "airties": "Airties", "sagemcom": "Sagemcom", "commscope": "CommScope",
         "cisco": "Cisco", "nokia": "Nokia", "ericsson": "Ericsson",
         "qualcomm": "Qualcomm", "intel": "Intel", "samsung": "Samsung",
         "huawei": "Huawei", "zte": "ZTE", "ciena": "Ciena",
+        "mediatek": "MediaTek", "sequans": "Sequans",
+
+        # Tower / Infrastructure
         "american tower": "American Tower", "crown castle": "Crown Castle",
+        "sba communications": "SBA Communications",
+
+        # Satellite / NTN Operators
+        "viasat": "Viasat", "hughesnet": "HughesNet", "echostar": "EchoStar",
+        "starlink": "Starlink (SpaceX)", "spacex": "SpaceX",
+        "oneweb": "OneWeb", "eutelsat": "Eutelsat",
+        "intelsat": "Intelsat", "telesat": "Telesat",
+        "lightspeed": "Telesat Lightspeed", "kuiper": "Amazon Kuiper",
+        "iridium": "Iridium", "globalstar": "Globalstar", "orbcomm": "ORBCOMM",
+
+        # Direct-to-Device / NTN
+        "skylo": "Skylo Technologies", "omnispace": "Omnispace",
+        "ast spacemobile": "AST SpaceMobile", "lynk global": "Lynk Global",
+
+        # Ground Infrastructure
+        "comtech": "Comtech Telecommunications",
+        "gilat": "Gilat Satellite Networks",
+        "speedcast": "Speedcast", "satcom direct": "Satcom Direct",
+
+        # Defense / Gov Satellite
+        "l3harris": "L3Harris", "northrop grumman": "Northrop Grumman",
+        "boeing": "Boeing", "lockheed": "Lockheed Martin",
+        "maxar": "Maxar Technologies",
+
+        # Telecom Operators (Competitors)
         "verizon": "Verizon (Competitor)", "at&t": "AT&T (Competitor)",
-        "t-mobile": "T-Mobile US (Competitor)", "vmware": "VMware",
-        "red hat": "Red Hat", "boldyn": "Boldyn Networks",
-        "jio": "Reliance Jio", "airtel": "Bharti Airtel"
+        "t-mobile": "T-Mobile US (Competitor)",
+        "deutsche telekom": "Deutsche Telekom (Competitor)",
+        "vodafone": "Vodafone (Competitor)", "telefonica": "Telefónica (Competitor)",
+        "bt group": "BT Group (Competitor)", "softbank": "SoftBank (Competitor)",
+        "telus": "Telus (Competitor)", "telstra": "Telstra (Competitor)",
+        "jio": "Reliance Jio (Competitor)", "airtel": "Bharti Airtel (Competitor)",
+
+        # Cloud / Software
+        "vmware": "VMware", "red hat": "Red Hat",
+        "boldyn": "Boldyn Networks",
     }
     text_lower = text.lower()
     found = [vendor for key, vendor in vendors.items() if key in text_lower]
