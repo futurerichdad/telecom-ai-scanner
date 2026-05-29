@@ -8,6 +8,7 @@ import os
 
 def fetch_headlines():
     API_KEY = os.getenv("NEWS_API_KEY")
+    print(f"API_KEY found: {API_KEY is not None}, value starts with: {str(API_KEY)[:4] if API_KEY else 'NONE'}")
     if not API_KEY:
         return []
 
@@ -30,11 +31,18 @@ def fetch_headlines():
             timeout=10
         )
         data = response.json()
-        # Return raw API response for debugging
-        return data
+        articles = data.get("articles", [])
+        headlines = []
+        for article in articles:
+            title = article.get("title", "")
+            url = article.get("url", "")
+            source = article.get("source", {}).get("name", "Unknown")
+            if title and url:
+                headlines.append({"text": title, "link": url, "source": source})
+        return headlines
     except Exception as e:
         print(f"NewsAPI fetch failed: {str(e)}")
-        return {}
+        return []
 
 
 def extract_signals_fast(text):
@@ -126,7 +134,27 @@ def push_to_notion_safe(results):
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        raw = fetch_headlines()
+        all_headlines = fetch_headlines()
+
+        results = []
+        for hl in all_headlines:
+            signals = extract_signals_fast(hl["text"])
+            if signals["telecom_score"] >= 2 and signals["ai_score"] >= 1:
+                results.append({
+                    "Headline": hl["text"][:200],
+                    "Source": hl["source"],
+                    "Link": hl["link"],
+                    "Published": datetime.now().isoformat(),
+                    "Telecom Relevance": "High" if signals["telecom_score"] >= 3 else "Medium",
+                    "AI Relevance": "High" if signals["ai_score"] >= 2 else "Low",
+                    "Action Signal": "PRIORITIZE" if (signals["telecom_score"] >= 3 and signals["ai_score"] >= 2) else "MONITOR" if signals["telecom_score"] >= 3 else "IGNORE",
+                    "Vendor Tags": detect_vendors_fast(hl["text"]),
+                    "Cost/Savings Signal": signals["cost_signal"],
+                    "Time Horizon": signals["time_horizon"]
+                })
+
+        push_to_notion_safe(results)
+
         body = json.dumps(results).encode()
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
