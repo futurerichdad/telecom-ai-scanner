@@ -1,39 +1,46 @@
 from http.server import BaseHTTPRequestHandler
-from bs4 import BeautifulSoup
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 import re
 import json
 import os
 
-KEY_SOURCES = [
-    {"name": "LightReading", "url": "https://www.lightreading.com/", "selector": ".article-title a"},
-    {"name": "FierceWireless", "url": "https://www.fiercewireless.com/wireless", "selector": ".headline a"},
-    {"name": "TelecomTV", "url": "https://www.telecomtv.com/content/", "selector": ".teaser-title a"},
-    {"name": "Ars Technica Telecom", "url": "https://arstechnica.com/tag/telecom/", "selector": ".article-header a"},
-    {"name": "IEEE ComSoc", "url": "https://comsoc.org/news", "selector": ".news-item h3 a"}
-]
 
+def fetch_headlines():
+    API_KEY = os.getenv("NEWS_API_KEY")
+    if not API_KEY:
+        return []
 
-def fetch_source(source):
+    query = (
+        "5G OR OpenRAN OR WiFi OR \"network slicing\" OR \"fixed wireless\" "
+        "OR \"small cell\" OR \"massive MIMO\" OR \"edge AI\" OR \"WiFi 7\" "
+        "OR \"WiFi 6\" OR ONT OR OLT"
+    )
+
     try:
         response = requests.get(
-            source["url"],
-            headers={"User-Agent": "TelecomAIScanner/1.0 (+https://vercel.com)"},
-            timeout=5
+            "https://newsapi.org/v2/everything",
+            params={
+                "q": query,
+                "language": "en",
+                "sortBy": "publishedAt",
+                "pageSize": 50,
+                "apiKey": API_KEY
+            },
+            timeout=10
         )
-        soup = BeautifulSoup(response.content, 'lxml')
+        data = response.json()
+        articles = data.get("articles", [])
         headlines = []
-        for tag in soup.select(source["selector"])[:3]:
-            text = tag.get_text(strip=True)
-            link = tag.get('href', '')
-            if not link.startswith('http'):
-                link = source["url"] + link
-            headlines.append({"text": text, "link": link, "source": source["name"]})
+        for article in articles:
+            title = article.get("title", "")
+            url = article.get("url", "")
+            source = article.get("source", {}).get("name", "Unknown")
+            if title and url:
+                headlines.append({"text": title, "link": url, "source": source})
         return headlines
     except Exception as e:
-        print(f"Skipping {source['name']}: {str(e)}")
+        print(f"NewsAPI fetch failed: {str(e)}")
         return []
 
 
@@ -126,31 +133,16 @@ def push_to_notion_safe(results):
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        all_headlines = []
-
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            futures = {executor.submit(fetch_source, source): source for source in KEY_SOURCES}
-            for future in as_completed(futures):
-                all_headlines.extend(future.result())
-
-        # Debug: return raw headlines before filtering
-        body = json.dumps({
-            "total_found": len(all_headlines),
-            "headlines": all_headlines
-        }).encode()
-
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.end_headers()
-        self.wfile.write(body)
+        all_headlines = fetch_headlines()
 
         results = []
-        for hl in all_headlines[:10]:
+        for hl in all_headlines:
             signals = extract_signals_fast(hl["text"])
             if signals["telecom_score"] >= 2 and signals["ai_score"] >= 1:
                 results.append({
                     "Headline": hl["text"][:200],
                     "Source": hl["source"],
+                    "Link": hl["link"],
                     "Published": datetime.now().isoformat(),
                     "Telecom Relevance": "High" if signals["telecom_score"] >= 3 else "Medium",
                     "AI Relevance": "High" if signals["ai_score"] >= 2 else "Low",
