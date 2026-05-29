@@ -118,9 +118,9 @@ def extract_signals_fast(text):
             break
 
     time_horizon = "Mid-Term"
-    if any(term in text_lower for term in ["2025", "2026", "long-term", "roadmap", "3-5 year"]):
+    if any(term in text_lower for term in ["2026", "2027", "long-term", "roadmap", "3-5 year"]):
         time_horizon = "Long-Term"
-    elif any(term in text_lower for term in ["2024", "q1", "q2", "h1", "h2", "pilot", "trial", "launch"]):
+    elif any(term in text_lower for term in ["2024", "2025", "q1", "q2", "h1", "h2", "pilot", "trial", "launch"]):
         time_horizon = "Near-Term"
 
     return {
