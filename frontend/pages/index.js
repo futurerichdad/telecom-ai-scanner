@@ -25,14 +25,14 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 p-6 font-sans">
       <Head>
-        <title>Telecom AI Signal Scanner</title>
+        <title>Telecom AI News Scanner</title>
         <meta name="description" content="Your PM-grade telecom/AI news filter" />
         <script src="https://cdn.tailwindcss.com"></script>
       </Head>
 
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8 pb-4 border-b">
-          <h1 className="text-3xl font-bold text-gray-800">Telecom AI Signal Scanner</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Telecom AI News Scanner</h1>
           <button
             onClick={handleScan}
             disabled={loading}
