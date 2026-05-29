@@ -133,6 +133,17 @@ class handler(BaseHTTPRequestHandler):
             for future in as_completed(futures):
                 all_headlines.extend(future.result())
 
+        # Debug: return raw headlines before filtering
+        body = json.dumps({
+            "total_found": len(all_headlines),
+            "headlines": all_headlines
+        }).encode()
+
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(body)
+
         results = []
         for hl in all_headlines[:10]:
             signals = extract_signals_fast(hl["text"])
