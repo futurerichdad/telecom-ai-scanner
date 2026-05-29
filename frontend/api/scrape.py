@@ -8,6 +8,7 @@ import os
 
 def fetch_headlines():
     API_KEY = os.getenv("NEWS_API_KEY")
+    print(f"API_KEY found: {API_KEY is not None}, value starts with: {str(API_KEY)[:4] if API_KEY else 'NONE'}")
     if not API_KEY:
         return []
 
