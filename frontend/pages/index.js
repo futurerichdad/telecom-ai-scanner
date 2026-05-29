@@ -36,9 +36,7 @@ export default function Home() {
           <button
             onClick={handleScan}
             disabled={loading}
-            className={`px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-shadow ${
-              loading ? 'opacity-50 cursor-not-allowed' : 'shadow-md hover:shadow-lg'
-            }`}
+            className={`px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-shadow ${loading ? 'opacity-50 cursor-not-allowed' : 'shadow-md hover:shadow-lg'}`}
           >
             {loading ? 'Scanning...' : 'Scan Now'}
           </button>
@@ -57,58 +55,61 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid gap-6">
-            {results.map((item, index) => (
-              <div key={index} className="border rounded-xl p-6 bg-white shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-start mb-4">
-                  
-                    href={item.Link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xl font-semibold text-indigo-700 hover:text-indigo-900 hover:underline"
-                  >
-                    {item.Headline}
-                  </a>
-                  <span className={`ml-4 shrink-0 px-3 py-1 text-xs rounded-full font-medium ${
-                    item['Action Signal'] === 'PRIORITIZE'
-                      ? 'bg-red-100 text-red-800'
-                      : item['Action Signal'] === 'MONITOR'
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {item['Action Signal']}
-                  </span>
-                </div>
+            {results.map((item, index) => {
+              const signalColor =
+                item['Action Signal'] === 'PRIORITIZE'
+                  ? 'bg-red-100 text-red-800'
+                  : item['Action Signal'] === 'MONITOR'
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'bg-gray-100 text-gray-600';
 
-                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-4">
-                  <span>📰 {item.Source}</span>
-                  <span>📅 {new Date(item.Published).toLocaleDateString()}</span>
-                  <span>⏱️ {item['Time Horizon']}</span>
-                </div>
-
-                {item['Vendor Tags'] && item['Vendor Tags'].length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {item['Vendor Tags'].map((v) => (
-                      <span key={v} className="px-2.5 py-0.5 bg-gray-200 text-xs rounded">
-                        {v}
-                      </span>
-                    ))}
+              return (
+                <div key={index} className="border rounded-xl p-6 bg-white shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start mb-4">
+                    <a
+                      href={item.Link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xl font-semibold text-indigo-700 hover:text-indigo-900 hover:underline"
+                    >
+                      {item.Headline}
+                    </a>
+                    <span className={`ml-4 shrink-0 px-3 py-1 text-xs rounded-full font-medium ${signalColor}`}>
+                      {item['Action Signal']}
+                    </span>
                   </div>
-                )}
 
-                {item['Cost/Savings Signal'] && (
-                  <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
-                    <p className="text-sm font-medium text-green-800">
-                      💰 {item['Cost/Savings Signal']}
-                    </p>
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-4">
+                    <span>📰 {item.Source}</span>
+                    <span>📅 {new Date(item.Published).toLocaleDateString()}</span>
+                    <span>⏱️ {item['Time Horizon']}</span>
                   </div>
-                )}
 
-                <div className="text-xs text-gray-500 flex flex-wrap gap-4">
-                  <span>📡 Telecom: {item['Telecom Relevance']}</span>
-                  <span>🤖 AI: {item['AI Relevance']}</span>
+                  {item['Vendor Tags'] && item['Vendor Tags'].length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {item['Vendor Tags'].map((v) => (
+                        <span key={v} className="px-2.5 py-0.5 bg-gray-200 text-xs rounded">
+                          {v}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {item['Cost/Savings Signal'] && (
+                    <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
+                      <p className="text-sm font-medium text-green-800">
+                        💰 {item['Cost/Savings Signal']}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="text-xs text-gray-500 flex flex-wrap gap-4">
+                    <span>📡 Telecom: {item['Telecom Relevance']}</span>
+                    <span>🤖 AI: {item['AI Relevance']}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
