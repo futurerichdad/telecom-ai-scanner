@@ -58,7 +58,41 @@ def extract_signals_fast(text):
         "ont": 4, "olt": 4, "fixed wireless": 2, "small cell": 2,
         "beamforming": 2, "massive mimo": 2, "network slicing": 3,
         "wifi 6": 3, "wifi 6e": 4, "wifi 7": 4, "telecom": 2,
-        "broadband": 2, "spectrum": 2, "fiber": 2, "lte": 2
+        "broadband": 2, "spectrum": 2, "fiber": 2, "lte": 2,
+        # Next-gen WiFi (beyond WiFi 7)
+        "wifi 8": 4, "ieee 802.11bn": 4, "eht": 3, "ultra high reliability": 3, "next generation":4,
+
+        # 6G (active standards work now, commercial ~2030)
+        "6g": 4, "imt-2030": 4, "terahertz": 3, "thz": 3, "sub-thz": 3,
+
+        # Open networking evolution
+        "o-ran": 4, "open ran": 4, "disaggregated ran": 3, "vran": 3, "cloud ran": 3,
+
+        # Private networks (big enterprise trend)
+        "private 5g": 4, "private lte": 3, "cbrs": 3, "neutral host": 3,
+
+        # Satellite/NTN (your Viasat context)
+        "ntn": 4, "non-terrestrial": 4, "leo": 3, "meo": 2, "starlink": 3,
+        "satellite broadband": 3, "direct to device": 4, "d2d": 2,
+
+        # Next-gen core
+        "service based architecture": 3, "sba": 2, "cloud native": 2,
+        "network as a service": 3, "naas": 3, "intent based networking": 3,
+
+        # 3GPP release milestones (journalists reference these constantly)
+        "release 18": 4, "rel-18": 4, "release 19": 4, "rel-19": 4,
+        "3gpp": 3,
+
+        # 5G Advanced (Release 18+ branding)
+        "5g advanced": 4, "5g-advanced": 4,
+
+        # Key Release 18/19 features getting press
+        "redcap": 4, "reduced capability": 3,  # IoT/wearables
+        "sidelink": 3,                          # device-to-device
+        "positioning": 2,                       # precise location
+        "xr": 3, "extended reality": 3,        # AR/VR over 5G
+        "ambient iot": 4,                       # battery-free devices
+        "integrated sensing": 3, "isac": 4,    # sensing + comms combined
     }
     telecom_score = sum(weight for kw, weight in telecom_keywords.items() if kw in text_lower)
 
