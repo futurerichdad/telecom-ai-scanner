@@ -31,7 +31,6 @@ export default function Home() {
       </Head>
 
       <div className="max-w-6xl mx-auto">
-        {/* Header - Velaris HMI Inspired */ }
         <div className="flex justify-between items-center mb-8 pb-4 border-b">
           <h1 className="text-3xl font-bold text-gray-800">Telecom AI Signal Scanner</h1>
           <button
@@ -45,14 +44,12 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Error Message */ }
         {error && (
           <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6">
             <p className="font-medium">{error}</p>
           </div>
         )}
 
-        {/* Results Grid */ }
         {results.length === 0 && !loading ? (
           <div className="text-center text-gray-500 py-12">
             <p className="text-lg">Click "Scan Now" to see telecom/AI signals</p>
@@ -62,13 +59,19 @@ export default function Home() {
           <div className="grid gap-6">
             {results.map((item, index) => (
               <div key={index} className="border rounded-xl p-6 bg-white shadow-sm hover:shadow-md transition-shadow">
-                {/* Header */ }
                 <div className="flex justify-between items-start mb-4">
-                  <h2 className="text-xl font-semibold text-gray-900">{item.Headline}</h2>
-                  <span className={`px-3 py-1 text-xs rounded-full font-medium ${
-                    item['Action Signal'] === '🚨 PRIORITIZE'
+                  
+                    href={item.Link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xl font-semibold text-indigo-700 hover:text-indigo-900 hover:underline"
+                  >
+                    {item.Headline}
+                  </a>
+                  <span className={`ml-4 shrink-0 px-3 py-1 text-xs rounded-full font-medium ${
+                    item['Action Signal'] === 'PRIORITIZE'
                       ? 'bg-red-100 text-red-800'
-                      : item['Action Signal'] === '📡 MONITOR'
+                      : item['Action Signal'] === 'MONITOR'
                       ? 'bg-blue-100 text-blue-800'
                       : 'bg-gray-100 text-gray-600'
                   }`}>
@@ -76,17 +79,15 @@ export default function Home() {
                   </span>
                 </div>
 
-                {/* Meta */ }
                 <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-4">
                   <span>📰 {item.Source}</span>
                   <span>📅 {new Date(item.Published).toLocaleDateString()}</span>
                   <span>⏱️ {item['Time Horizon']}</span>
                 </div>
 
-                {/* Vendor Tags */ }
-                {item.VendorTags && item.VendorTags.length > 0 && (
+                {item['Vendor Tags'] && item['Vendor Tags'].length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {item.VendorTags.map((v) => (
+                    {item['Vendor Tags'].map((v) => (
                       <span key={v} className="px-2.5 py-0.5 bg-gray-200 text-xs rounded">
                         {v}
                       </span>
@@ -94,7 +95,6 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Cost/Savings Signal */ }
                 {item['Cost/Savings Signal'] && (
                   <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
                     <p className="text-sm font-medium text-green-800">
@@ -103,7 +103,6 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Signal Breakdown */ }
                 <div className="text-xs text-gray-500 flex flex-wrap gap-4">
                   <span>📡 Telecom: {item['Telecom Relevance']}</span>
                   <span>🤖 AI: {item['AI Relevance']}</span>
@@ -112,8 +111,7 @@ export default function Home() {
             ))}
           </div>
         )}
-        
-        {/* Footer */ }
+
         <div className="mt-12 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
           Built with <span className="text-indigo-600">❤️</span> by a telecom PM who ships <br />
           <span className="font-medium">Signal → Strategy → Shipment</span>

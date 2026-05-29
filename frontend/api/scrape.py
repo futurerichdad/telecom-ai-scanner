@@ -5,6 +5,13 @@ import re
 import json
 import os
 
+BLOCKED_SOURCES = {
+    "Pypi.org", "Slickdeals.net", "Dealnews.com", "Bringatrailer.com",
+    "Rlsbb.to", "Adventurouskate.com", "Bossip"
+}
+
+KEY_SOURCES = []
+
 
 def fetch_headlines():
     API_KEY = os.getenv("NEWS_API_KEY")
@@ -36,7 +43,7 @@ def fetch_headlines():
             title = article.get("title", "")
             url = article.get("url", "")
             source = article.get("source", {}).get("name", "Unknown")
-            if title and url:
+            if title and url and source not in BLOCKED_SOURCES:
                 headlines.append({"text": title, "link": url, "source": source})
         return headlines
     except Exception as e:
@@ -141,7 +148,6 @@ class handler(BaseHTTPRequestHandler):
         results = []
         for hl in all_headlines:
             signals = extract_signals_fast(hl["text"])
-            # Lowered thresholds: telecom >= 2 OR (telecom >= 1 AND ai >= 1)
             if signals["telecom_score"] >= 2 or (signals["telecom_score"] >= 1 and signals["ai_score"] >= 1):
                 results.append({
                     "Headline": hl["text"][:200],
@@ -163,4 +169,3 @@ class handler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json')
         self.end_headers()
         self.wfile.write(body)
-        
