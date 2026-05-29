@@ -2,12 +2,11 @@ from bs4 import BeautifulSoup
 import requests
 import re
 import json
-from notion_client import Client
 import os
-from datetime import datetime
+from datetime.datetime import now
 
 def handler(request):
-    # ===== CONFIGURE YOUR SOURCES HERE (TELECOM/AI FOCUS) =====
+    # ===== TELECOM/AI SOURCES (YOUR FOCUS) =====
     KEY_SOURCES = [
         {"name": "LightReading", "url": "https://www.lightreading.com/", "selector": ".article-title a"},
         {"name": "FierceWireless", "url": "https://www.fiercewireless.com/wireless", "selector": ".headline a"},
@@ -15,77 +14,80 @@ def handler(request):
         {"name": "Ars Technica Telecom", "url": "https://arstechnica.com/tag/telecom/", "selector": ".article-header a"},
         {"name": "IEEE ComSoc", "url": "https://comsoc.org/news", "selector": ".news-item h3 a"}
     ]
-    # ===== END CONFIG =====
-
+    
     all_headlines = []
     for source in KEY_SOURCES:
         try:
-            response = requests.get(source["url"], headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+            # Critical: Add timeout and user-agent to avoid Vercel blocks
+            response = requests.get(
+                source["url"], 
+                headers={"User-Agent": "TelecomAIScanner/1.0 (+https://vercel.com)"}, 
+                timeout=15
+            )
             soup = BeautifulSoup(response.content, 'html.parser')
-            for tag in soup.select(source["selector"])[:5]:  # Top 5 per source
+            for tag in soup.select(source["selector"])[:3]:  # Reduced to 3 for speed
                 text = tag.get_text(strip=True)
                 link = tag.get('href', '')
                 if not link.startswith('http'):
                     link = source["url"] + link
                 all_headlines.append({"text": text, "link": link, "source": source["name"]})
         except Exception as e:
-            print(f"Error scraping {source['name']}: {str(e)}")
+            print(f"⚠️  Skipping {source['name']}: {str(e)}")
             continue
 
-    # Process headlines for signals
+    # Process headlines (optimized for speed)
     results = []
-    for hl in all_headlines:
-        signals = extract_signals(hl["text"])
-        # Only keep items with meaningful telecom/AI signal (your filter)
+    for hl in all_headlines[:10]:  # Max 10 results to avoid timeout
+        signals = extract_signals_fast(hl["text"])
         if signals["telecom_score"] >= 2 and signals["ai_score"] >= 1:
-            item = {
+            results.append({
                 "Headline": hl["text"][:200],
                 "Source": hl["source"],
-                "Published": datetime.now().isoformat(),
+                "Published": now().isoformat(),
                 "Telecom Relevance": "High" if signals["telecom_score"] >= 3 else "Medium",
                 "AI Relevance": "High" if signals["ai_score"] >= 2 else "Low",
                 "Action Signal": "🚨 PRIORITIZE" if (signals["telecom_score"] >= 3 and signals["ai_score"] >= 2) else "📡 MONITOR" if signals["telecom_score"] >= 3 else "📉 IGNORE",
-                "Vendor Tags": detect_vendors(hl["text"]),
+                "Vendor Tags": detect_vendors_fast(hl["text"]),
                 "Cost/Savings Signal": signals["cost_signal"],
                 "Time Horizon": signals["time_horizon"]
-            }
-            results.append(item)
-
-    # Push to Notion if credentials exist (optional but recommended)
-    push_to_notion(results)
+            })
+    
+    # Push to Notion (if configured)
+    push_to_notion_safe(results)
     
     return {
         "statusCode": 200,
+        "headers": {"Content-Type": "application/json"},
         "body": json.dumps(results)
     }
 
-def extract_signals(text):
+# ===== OPTIMIZED HELPERS (NO EXTERNAL DEPS BEYOND REQUIREMENTS.TXT) =====
+def extract_signals_fast(text):
     text_lower = text.lower()
     
-    # Telecom keywords (weighted by your AT&T expertise)
+    # Telecom keywords (prioritizing YOUR WiFi expertise)
     telecom_keywords = {
         "wifi": 3, "5g": 3, "openran": 3, "ran": 2, "core network": 2, 
-        "ont": 2, "olt": 2, "fixed wireless": 2, "small cell": 2, 
+        "ont": 4, "olt": 4, "fixed wireless": 2, "small cell": 2, 
         "beamforming": 2, "massive mimo": 2, "network slicing": 3,
-        "wifi 6": 3, "wifi 6e": 4, "wifi 7": 4  # Boosted for your specialty
+        "wifi 6": 3, "wifi 6e": 4, "wifi 7": 4  # YOUR SPECIALTY
     }
     telecom_score = sum(weight for kw, weight in telecom_keywords.items() if kw in text_lower)
     
-    # AI keywords (practical AI focus)
+    # AI keywords (practical focus)
     ai_keywords = {
         "llm": 3, "ml": 2, "inference": 3, "edge ai": 3, "tinyML": 2,
         "anomaly detection": 2, "predictive maintenance": 2, "computer vision": 2,
-        "nlp": 2, "reinforcement learning": 1, "ai": 1
+        "nlp": 2, "reinforcement learning": 1
     }
     ai_score = sum(weight for kw, weight in ai_keywords.items() if kw in text_lower)
     
-    # Cost/savings signals (from your $5M+ budget experience)
+    # Cost/savings signals (from your $5M+ budget work)
     cost_patterns = [
         r'(saved?|reduced?|cut)\s*\$?\d+[\d,.]*(?:\s*(?:million|billion|m|b))?',
         r'(cost\s*(?:savings|reduction|avoidance))\s*\$?\d+[\d,.]*',
-        r'(roi|return\s*on\s*investment)\s*\d+%',
-        r'(capEx|opex)\s*(?:reduced?|lowered?)\s*\d+%',
-        r'(truck\s*rolls?|dispatch)\s*(?:reduced?|lowered?|cut)\s*\d+%'
+        r'(truck\s*rolls?|dispatch)\s*(?:reduced?|lowered?|cut)\s*\d+%',
+        r'(roi|return\s*on\s*investment)\s*\d+%'
     ]
     cost_signal = ""
     for pattern in cost_patterns:
@@ -110,137 +112,49 @@ def extract_signals(text):
         "time_horizon": time_horizon
     }
 
-def detect_vendors(text):
+def detect_vendors_fast(text):
     vendors = {
-        # ===== TIER 1: WIFI/HOME NETWORKING VENDORS (YOUR CORE AT&T FOCUS - WEIGHT 4) =====
-        "airties": "Airties",                    # Home WiFi mesh (critical for your strategy)
-        "sagemcom": "Sagemcom",                  # Gateway/AP manufacturer
-        "commscope": "CommScope",                # Antennas/cabling for WiFi deployments
-        "cisco": "Cisco",                        # Meraki/Enterprise WiFi
-        "nokia": "Nokia",                        # WiFi Beacon/Radio Dot
-        "ericsson": "Ericsson",                  # Radio Dot System
-        "qualcomm": "Qualcomm",                  # WiFi chipsets (QCA9377 etc.)
-        "intel": "Intel",                        # WiFi 6E/7 chipsets (AX210)
-        "samsung": "Samsung",                    # Networking gear
-        "huawei": "Huawei",                      # WiFi APs (despite restrictions)
-        "zte": "ZTE",                            # WiFi solutions
+        # YOUR CORE WIFI VENDORS (TIER 1)
+        "airties": "Airties", "sagemcom": "Sagemcom", "commscope": "CommScope",
+        "cisco": "Cisco", "nokia": "Nokia", "ericsson": "Ericsson",
+        "qualcomm": "Qualcomm", "intel": "Intel", "samsung": "Samsung",
+        "huawei": "Huawei", "zte": "ZTE",
         
-        # ===== TIER 2: INFRASTRUCTURE/BACKHAUL VENDORS (WEIGHT 3) =====
-        "ciena": "Ciena",                        # Optical backhaul (fiber to AP)
-        "american tower": "American Tower",      # Tower partner (outdoor WiFi/small cell)
-        "crown castle": "Crown Castle",          # Tower partner
-        "sba communications": "SBA Communications", # Tower partner
-        "echostar": "EchoStar",                  # Satellite backhaul (rural WiFi)
-        "globalstar": "Globalstar",              # Satellite (IoT/WiFi hybrid)
-        "iridium": "Iridium",                    # Satellite (global WiFi fallback)
-        "interdigital": "InterDigital",          # Wireless tech patents (WiFi innovation)
-        "lumen technologies": "Lumen Technologies", # Fiber/network services
-        "softbank": "SoftBank Corp",             # Telecom arm (5G/WiFi R&D)
-        "zte": "ZTE",                            # Already in Tier 1 but kept for coverage
+        # INFRASTRUCTURE (TIER 2)
+        "ciena": "Ciena", "american tower": "American Tower", 
+        "crown castle": "Crown Castle", "sba communications": "SBA Communications",
+        "echostar": "EchoStar", "globalstar": "Globalstar", "iridium": "Iridium",
         
-        # ===== TIER 3: TELECOM OPERATORS (COMPETITIVE INTELLIGENCE - WEIGHT 2) =====
-        # (Formatted as "Vendor Name (Competitor)" for instant recognition in Vendor Tags)
-        "softbank group": "SoftBank Group (Competitor)",   # Conglomerate (telecom arm relevant)
-        "china mobile": "China Mobile (Competitor)",       # #2 in your list
-        "t-mobile us": "T-Mobile US (Competitor)",         # #3
-        "verizon": "Verizon (Competitor)",                 # #4
-        "at&t": "AT&T (Competitor)",                       # #5 (self-reference for competitive intel)
-        "deutsche telekom": "Deutsche Telekom (Competitor)", # #6
-        "bharti airtel": "Bharti Airtel (Competitor)",     # #7
-        "comcast": "Comcast (Competitor)",                 # #8 (broadband/WiFi competitor)
-        "america movil": "América Móvil (Competitor)",     # #12
-        "kddi": "KDDI (Competitor)",                       # #13
-        "china telecom": "China Telecom (Competitor)",     # #14
-        "saudi telecom company": "Saudi Telecom Company (Competitor)", # #15
-        "singtel": "Singtel (Competitor)",                 # #16
-        "orange": "Orange (Competitor)",                   # #17
-        "swisscom": "Swisscom (Competitor)",               # #18
-        "emirates telecom": "Emirates Telecom (Etisalat Group) (Competitor)", # #20
-        "telstra": "Telstra (Competitor)",                 # #21
-        "bt group": "BT Group (Competitor)",               # #29
-        "telefonica": "Telefónica (Competitor)",           # #31
-        "sk group": "SK Group (Competitor)",               # #32 (Note: Includes SK Telecom)
-        "mtn group": "MTN Group (Competitor)",             # #33
-        "bce inc": "BCE Inc. (Competitor)",                # #34
-        "telenor": "Telenor (Competitor)",                 # #36
-        "telia company": "Telia Company (Competitor)",     # #40
-        "rogers communications": "Rogers Communications (Competitor)", # #141
-        "charter communications": "Charter Communications (Competitor)", # #142
-        "kpn": "KPN (Competitor)",                         # #43
-        "telus": "Telus (Competitor)",                     # #144
-        "telecom italia": "Telecom Italia (Competitor)",   # #47
-        "airtel africa": "Airtel Africa (Competitor)",     # #48
-        "telkom indonesia": "Telkom Indonesia (Competitor)", # #49
-        "vodafone idea": "Vodafone Idea (Competitor)",     # #50
-        "true corporation": "True Corporation (Competitor)", # #51
-        "sk telecom": "SK Telecom (Competitor)",           # #252
-        "millicom": "Millicom (Competitor)",               # #153
-        "emirates integrated telecom": "Emirates Integrated Telecommunications Company (Competitor)", # #154
-        "etihad etisalat": "Etihad Etisalat (Mobily) (Competitor)", # #155
-        "tele2": "Tele2 (Competitor)",                     # #156
-        "indus towers": "Indus Towers (Competitor)",       # #57
-        "ooredoo qatar": "Ooredoo Qatar (Competitor)",     # #58
-        "hong kong telecom": "Hong Kong Telecom (Competitor)", # #159
-        "ooredoo": "Ooredoo (Competitor)",                 # #160
-        "quebecor": "Quebecor (Competitor)",               # #163
-        "far eastone": "Far EasTone (Competitor)",         # #164
-        "taiwan mobile": "Taiwan Mobile (Competitor)",     # #66
-        "tim s.a.": "TIM S.A. (Competitor)",               # #67
-        "sirius xm": "Sirius XM (Competitor)",             # #68 (satellite audio - relevant for in-car WiFi)
-        "celcomdigi": "Celcomdigi (Competitor)",           # #69
-        "ote group": "OTE Group (Competitor)",             # #70
-        "elisa": "Elisa (Competitor)",                     # #76
-        "a1 telekom austria": "A1 Telekom Austria (Competitor)", # #77
-        "maxis berhad": "Maxis Berhad (Competitor)",       # #278
-        "telekom malaysia": "Telekom Malaysia (Competitor)", # #179
-        "inwit": "INWIT (Competitor)",                     # #180
-        "mobile telesystems": "Mobile TeleSystems (Competitor)", # #82
-        "telecom argentina": "Telecom Argentina (Competitor)", # #83
-        "tata communications": "Tata Communications (Competitor)", # #284
-        "orange polska": "Orange Polska (Competitor)",     # #85
-        "zegona communications": "Zegona Communications (Competitor)", # #286
-        "pccw": "PCCW (Competitor)",                       # #87
-        "tpg telecom": "TPG Telecom (Competitor)",         # #188
-        "united internet": "United Internet (Competitor)", # #92
-        "turkcell": "Turkcell (Competitor)",               # #93
-        "liberty global": "Liberty Global (Competitor)",   # #94
-        "turk telekom": "Türk Telekom (Competitor)",       # #295
-        "1&1": "1&1 (Competitor)",                         # #96
-        "axiata group": "Axiata Group (Competitor)",       # #98
-        "telephone and data systems": "Telephone and Data Systems (Competitor)", # #99
-        "sunrise communications": "Sunrise Communications AG (Competitor)", # #1100
-        "zayo group": "Zayo Group Holdings (Competitor)",  # Bandwidth infra (alternative carriers)
-        "8x8": "8x8 Inc. (Competitor)",                    # Cloud comms (alternative carriers)
-        "vonage": "Vonage Holdings Corp. (Competitor)",    # Cloud comms (alternative carriers)
-        "magicjack": "MagicJack VocalTec Ltd. (Competitor)", # Micro-cap carrier
-        "one horizon": "One Horizon Group Inc. (Competitor)", # Micro-cap carrier
-        "ooma": "Ooma Inc. (Competitor)",                  # Micro-cap carrier
+        # COMPETITORS (TIER 3 - LABELED FOR CLARITY)
+        "verizon": "Verizon (Competitor)", "at&t": "AT&T (Competitor)",
+        "t-mobile": "T-Mobile US (Competitor)", "deutsche telekom": "Deutsche Telekom (Competitor)",
+        "china mobile": "China Mobile (Competitor)", "orange": "Orange (Competitor)",
+        "vodafone": "Vodafone (Competitor)", "telefonica": "Telefónica (Competitor)",
+        "bt group": "BT Group (Competitor)", "kpn": "KPN (Competitor)",
+        "telus": "Telus (Competitor)", "telstra": "Telstra (Competitor)",
+        "softbank": "SoftBank Corp (Competitor)",  # Telecom arm
         
-        # ===== YOUR ORIGINAL VENDORS (PRESERVED FOR BACKWARD COMPATIBILITY) =====
-        "open source": "Open-Source",
-        "vmware": "VMware",
-        "red hat": "Red Hat",
-        "arcturus": "Arcturus"
+        # YOUR ORIGINALS
+        "open source": "Open-Source", "vmware": "VMware", 
+        "red hat": "Red Hat", "arcturus": "Arcturus"
     }
     found = []
     text_lower = text.lower()
     for key, vendor in vendors.items():
         if key in text_lower:
             found.append(vendor)
-    # Return UNIQUE entries (max 3) – prioritizes Tier 1/2 via natural scoring
-    return list(set(found))[:3]
+    return list(set(found))[:3]  # Max 3 vendors
 
-
-def push_to_notion(results):
+def push_to_notion_safe(results):
     NOTION_TOKEN = os.getenv("NOTION_TOKEN")
     NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
     if not NOTION_TOKEN or not NOTION_DATABASE_ID:
-        print("⚠️ Notion credentials not set - skipping Notion push")
-        return
+        return  # Silently fail if not configured (avoids crashing)
     
     try:
+        from notion_client import Client
         notion = Client(auth=NOTION_TOKEN)
-        for item in results:
+        for item in results[:5]:  # Max 5 items to avoid timeout
             notion.pages.create(
                 parent={"database_id": NOTION_DATABASE_ID},
                 properties={
@@ -255,6 +169,5 @@ def push_to_notion(results):
                     "Time Horizon": {"select": {"name": item["Time Horizon"]}}
                 }
             )
-        print(f"✅ Pushed {len(results)} items to Notion")
     except Exception as e:
-        print(f"❌ Notion push failed: {str(e)}")
+        print(f"⚠️  Notion push failed (non-fatal): {str(e)}")
