@@ -127,7 +127,7 @@ def push_to_notion_safe(results):
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         raw = fetch_headlines()
-        body = json.dumps(results).encode()
+        body = json.dumps(raw).encode()
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self.end_headers()
