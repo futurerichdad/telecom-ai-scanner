@@ -51,7 +51,7 @@ export default function Home() {
         {results.length === 0 && !loading ? (
           <div className="text-center text-gray-500 py-12">
             <p className="text-lg">Click "Scan Now" to see telecom/AI signals</p>
-            <p className="text-sm mt-2">Powered by your AT&T PM judgment framework</p>
+            <p className="text-sm mt-2">Powered by your Neighborhood PM judgment framework</p>
           </div>
         ) : (
           <div className="grid gap-6">
