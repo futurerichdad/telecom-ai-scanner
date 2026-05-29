@@ -30,11 +30,18 @@ def fetch_headlines():
             timeout=10
         )
         data = response.json()
-        # Return raw API response for debugging
-        return data
+        articles = data.get("articles", [])
+        headlines = []
+        for article in articles:
+            title = article.get("title", "")
+            url = article.get("url", "")
+            source = article.get("source", {}).get("name", "Unknown")
+            if title and url:
+                headlines.append({"text": title, "link": url, "source": source})
+        return headlines
     except Exception as e:
         print(f"NewsAPI fetch failed: {str(e)}")
-        return {}
+        return []
 
 
 def extract_signals_fast(text):
@@ -43,14 +50,16 @@ def extract_signals_fast(text):
         "wifi": 3, "5g": 3, "openran": 3, "ran": 2, "core network": 2,
         "ont": 4, "olt": 4, "fixed wireless": 2, "small cell": 2,
         "beamforming": 2, "massive mimo": 2, "network slicing": 3,
-        "wifi 6": 3, "wifi 6e": 4, "wifi 7": 4
+        "wifi 6": 3, "wifi 6e": 4, "wifi 7": 4, "telecom": 2,
+        "broadband": 2, "spectrum": 2, "fiber": 2, "lte": 2
     }
     telecom_score = sum(weight for kw, weight in telecom_keywords.items() if kw in text_lower)
 
     ai_keywords = {
         "llm": 3, "ml": 2, "inference": 3, "edge ai": 3, "tinyml": 2,
         "anomaly detection": 2, "predictive maintenance": 2, "computer vision": 2,
-        "nlp": 2, "reinforcement learning": 1
+        "nlp": 2, "reinforcement learning": 1, "ai": 1, "artificial intelligence": 2,
+        "machine learning": 2, "generative": 1, "automation": 1
     }
     ai_score = sum(weight for kw, weight in ai_keywords.items() if kw in text_lower)
 
@@ -90,7 +99,8 @@ def detect_vendors_fast(text):
         "american tower": "American Tower", "crown castle": "Crown Castle",
         "verizon": "Verizon (Competitor)", "at&t": "AT&T (Competitor)",
         "t-mobile": "T-Mobile US (Competitor)", "vmware": "VMware",
-        "red hat": "Red Hat"
+        "red hat": "Red Hat", "boldyn": "Boldyn Networks",
+        "jio": "Reliance Jio", "airtel": "Bharti Airtel"
     }
     text_lower = text.lower()
     found = [vendor for key, vendor in vendors.items() if key in text_lower]
@@ -126,9 +136,31 @@ def push_to_notion_safe(results):
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        raw = fetch_headlines()
-        body = json.dumps(raw).encode()
+        all_headlines = fetch_headlines()
+
+        results = []
+        for hl in all_headlines:
+            signals = extract_signals_fast(hl["text"])
+            # Lowered thresholds: telecom >= 2 OR (telecom >= 1 AND ai >= 1)
+            if signals["telecom_score"] >= 2 or (signals["telecom_score"] >= 1 and signals["ai_score"] >= 1):
+                results.append({
+                    "Headline": hl["text"][:200],
+                    "Source": hl["source"],
+                    "Link": hl["link"],
+                    "Published": datetime.now().isoformat(),
+                    "Telecom Relevance": "High" if signals["telecom_score"] >= 3 else "Medium",
+                    "AI Relevance": "High" if signals["ai_score"] >= 2 else "Low",
+                    "Action Signal": "PRIORITIZE" if (signals["telecom_score"] >= 3 and signals["ai_score"] >= 2) else "MONITOR" if signals["telecom_score"] >= 2 else "IGNORE",
+                    "Vendor Tags": detect_vendors_fast(hl["text"]),
+                    "Cost/Savings Signal": signals["cost_signal"],
+                    "Time Horizon": signals["time_horizon"]
+                })
+
+        push_to_notion_safe(results)
+
+        body = json.dumps(results).encode()
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self.end_headers()
         self.wfile.write(body)
+        
