@@ -44,7 +44,7 @@ def fetch_headlines():
             url = article.get("url", "")
             source = article.get("source", {}).get("name", "Unknown")
             if title and url and source not in BLOCKED_SOURCES:
-                headlines.append({"text": title, "link": url, "source": source})
+                headlines.append({"text": title, "link": url, "source": source,"publishedAt": article.get("publishedAt", "")})
         return headlines
     except Exception as e:
         print(f"NewsAPI fetch failed: {str(e)}")
@@ -187,7 +187,7 @@ class handler(BaseHTTPRequestHandler):
                     "Headline": hl["text"][:200],
                     "Source": hl["source"],
                     "Link": hl["link"],
-                    "Published": datetime.now().isoformat(),
+                    "Published": hl.get("publishedAt", datetime.now().isoformat()),
                     "Telecom Relevance": "High" if signals["telecom_score"] >= 3 else "Medium",
                     "AI Relevance": "High" if signals["ai_score"] >= 2 else "Low",
                     "Action Signal": "PRIORITIZE" if (signals["telecom_score"] >= 3 and signals["ai_score"] >= 2) else "MONITOR" if signals["telecom_score"] >= 2 else "IGNORE",
